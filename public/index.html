@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173d2e">
+  <title>The Wishlist</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <canvas id="sky" aria-hidden="true"></canvas>
+
+  <!-- ===== Welcome: create or join a group ===== -->
+  <section id="welcome" class="welcome" hidden>
+    <div class="welcome-hero">
+      <div class="big-gift" aria-hidden="true">🎁</div>
+      <h1>The Wishlist</h1>
+      <p class="sub">Christmas &amp; birthday wish lists for your family, with secret gift-claiming so nobody doubles up and nothing gets spoiled.</p>
+      <p class="countdown-pill" id="welcome-countdown"></p>
+    </div>
+    <div class="welcome-cards">
+      <form id="join-form" class="card">
+        <h2>🎄 Join your family</h2>
+        <label>Group code <input name="code" placeholder="6-letter code" maxlength="6" required autocomplete="off" class="code-input"></label>
+        <label>Your name <input name="name" placeholder="Use the same name to get back in" required autocomplete="given-name"></label>
+        <button class="btn primary">Join group</button>
+      </form>
+      <form id="create-form" class="card">
+        <h2>✨ Start a new group</h2>
+        <label>Group name <input name="name" placeholder="e.g. The Archer Family" required></label>
+        <label>Your name <input name="member" placeholder="e.g. Cayman" required autocomplete="given-name"></label>
+        <button class="btn secondary">Create group</button>
+      </form>
+    </div>
+    <p class="error" id="welcome-error" role="alert"></p>
+  </section>
+
+  <!-- ===== Main app ===== -->
+  <section id="app" hidden>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow">The Wishlist</p>
+            <h1 id="group-name"></h1>
+          </div>
+          <div class="hero-actions">
+            <button class="icon-btn" id="snow-btn" title="Toggle snow" aria-label="Toggle falling snow">❄️</button>
+            <button class="icon-btn" id="profile-btn" title="My profile &amp; group" aria-label="My profile and group settings">⚙️</button>
+          </div>
+        </div>
+        <div class="hero-meta">
+          <span class="countdown-pill" id="countdown"></span>
+          <span class="hero-me">Hi, <strong id="me"></strong> 👋</span>
+          <button id="copy-code" class="code-chip" title="Copy invite link"></button>
+        </div>
+      </div>
+      <svg class="hero-hills" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 40 Q 150 0 300 30 T 600 28 T 900 22 T 1200 34 V60 H0 Z"/>
+      </svg>
+    </header>
+
+    <main class="container">
+      <div class="toolbar">
+        <nav class="tabs" role="tablist" aria-label="Lists">
+          <button class="tab" role="tab" data-view="christmas">🎄 Christmas</button>
+          <button class="tab" role="tab" data-view="birthday">🎂 Birthday</button>
+          <button class="tab" role="tab" data-view="shopping">🛍️ <span class="long">My shopping</span><span class="short">Shopping</span> <span class="badge" id="shop-count" hidden></span></button>
+        </nav>
+        <button class="btn primary add-btn" id="add-btn">＋ Add a wish</button>
+      </div>
+
+      <div id="santa-banner"></div>
+
+      <div class="filters" id="filters">
+        <div class="people-chips" id="people-chips" role="group" aria-label="Whose list"></div>
+        <div class="filter-selects">
+          <label class="mini">Budget
+            <select id="budget">
+              <option value="any">Any price</option>
+              <option value="25">Under $25</option>
+              <option value="50">Under $50</option>
+              <option value="100">Under $100</option>
+            </select>
+          </label>
+          <label class="mini">Sort
+            <select id="sort">
+              <option value="wanted">Most wanted</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="price-low">Price: low → high</option>
+              <option value="price-high">Price: high → low</option>
+            </select>
+          </label>
+          <label class="mini check"><input type="checkbox" id="hide-taken"> Hide taken gifts</label>
+        </div>
+      </div>
+
+      <div id="lists"></div>
+    </main>
+
+    <footer class="foot">Made with 🎁 for the family · claims are hidden from the person whose list it is</footer>
+  </section>
+
+  <!-- ===== Add / edit item dialog ===== -->
+  <dialog id="item-dialog">
+    <form id="item-form" method="dialog">
+      <div class="dialog-head">
+        <h2 id="dialog-title">Add a wish</h2>
+        <button type="button" class="icon-btn close" data-close aria-label="Close">✕</button>
+      </div>
+
+      <!-- Search & autofill -->
+      <div class="finder" id="finder">
+        <div class="finder-box">
+          <span aria-hidden="true">🔍</span>
+          <input id="finder-input" type="search" autocomplete="off" placeholder="What are you wishing for? Or paste a product link…" aria-label="Search gift ideas or paste a link">
+        </div>
+        <div class="finder-results" id="finder-results" hidden></div>
+      </div>
+
+      <div class="field-row">
+        <span class="label">Which list?</span>
+        <div class="seg">
+          <label><input type="radio" name="list" value="christmas" checked><span>🎄 Christmas</span></label>
+          <label><input type="radio" name="list" value="birthday"><span>🎂 Birthday</span></label>
+        </div>
+      </div>
+
+      <div class="name-row">
+        <button type="button" class="emoji-btn" id="emoji-btn" title="Pick an icon" aria-label="Pick an icon">🎁</button>
+        <label class="grow">Item name * <input name="name" required maxlength="200" placeholder="e.g. Cozy wool slippers"></label>
+      </div>
+      <div class="emoji-grid" id="emoji-grid" hidden></div>
+
+      <label>Link
+        <span class="link-row">
+          <input name="link" type="url" inputmode="url" placeholder="https://…">
+          <button type="button" class="btn small secondary" id="autofill-btn">✨ Autofill</button>
+        </span>
+      </label>
+
+      <span class="label">Photo</span>
+      <div id="dropzone" class="dropzone" tabindex="0">
+        <img id="photo-preview" alt="" hidden>
+        <div id="drop-hint">
+          <strong>Drag a photo here</strong><br>or <u>click to upload</u> (you can also paste an image)
+        </div>
+        <input type="file" id="photo-input" accept="image/*" hidden>
+      </div>
+      <button type="button" class="link-btn" id="remove-photo" hidden>Remove photo</button>
+
+      <div class="field-row">
+        <span class="label">Price</span>
+        <div class="seg">
+          <label><input type="radio" name="price_type" value="exact" checked><span>Exact</span></label>
+          <label><input type="radio" name="price_type" value="approx"><span>Approx. (~)</span></label>
+          <label><input type="radio" name="price_type" value="none"><span>No price</span></label>
+        </div>
+      </div>
+      <label id="price-wrap" class="price-input">
+        <span>$</span><input name="price" type="number" min="0" step="0.01" placeholder="0.00">
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" name="priority">
+        <span class="toggle-ui" aria-hidden="true"></span>
+        <span>❤️ I <em>really</em> want this</span>
+      </label>
+
+      <div class="two-col">
+        <label>Date added <input name="date_added" type="date" required></label>
+      </div>
+      <label>Notes <textarea name="notes" rows="2" maxlength="1000" placeholder="Size, color, any amount is fine, etc."></textarea></label>
+
+      <p class="error" id="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn danger" id="delete-btn" hidden>Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>Cancel</button>
+        <button type="submit" class="btn primary" id="save-btn">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Profile / group dialog ===== -->
+  <dialog id="profile-dialog">
+    <form id="profile-form" method="dialog">
+      <div class="dialog-head">
+        <h2>⚙️ You &amp; your group</h2>
+        <button type="button" class="icon-btn close" data-close aria-label="Close">✕</button>
+      </div>
+
+      <section class="panel">
+        <h3>🎂 Your birthday</h3>
+        <p class="hint">So everyone sees a countdown on your birthday list. No year needed.</p>
+        <div class="two-col">
+          <label>Month <select name="bmonth"></select></label>
+          <label>Day <select name="bday"></select></label>
+        </div>
+        <button type="button" class="btn small secondary" id="save-bday">Save birthday</button>
+      </section>
+
+      <section class="panel">
+        <h3>💌 Invite the family</h3>
+        <p class="hint">Send this link. It opens the app with your group code filled in.</p>
+        <div class="link-row">
+          <input id="invite-link" readonly>
+          <button type="button" class="btn small secondary" id="copy-invite">Copy</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>🎅 Secret Santa</h3>
+        <div id="santa-panel"></div>
+      </section>
+
+      <div class="dialog-actions">
+        <button type="button" class="btn ghost" id="leave-btn">Sign out / switch group</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn primary" data-close>Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden role="status"></div>
+  <script src="/ideas.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
